@@ -1,0 +1,710 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>레시피 서랍</title>
+<meta name="theme-color" content="#F2F4EF" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#121613" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="레시피 서랍">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Noto+Sans+KR:wght@400;500;700&display=swap">
+<style>
+/* 레이아웃: 위에 고정된 검색줄, 아래 썸네일 격자. 상세·저장·요리 모드는 아래에서 올라오는 시트 */
+:root{
+  --bg:#F2F4EF; --surface:#FFFFFF; --sunk:#E8ECE5; --fg:#1B211D; --muted:#5F6A63; --line:#D7DDD3;
+  --accent:#D2391C; --accent-fg:#FFFFFF; --focus:#2F6E8E; --ok:#2E7D4F;
+  --c-kor:#B8412A; --c-west:#2C6584; --c-chn:#8E6311; --c-jpn:#356C4A; --c-des:#A24C78; --c-etc:#4F5470;
+  --cover-fg:#FFFFFF; --scrim:rgba(16,20,17,.48);
+  --shadow:0 1px 2px rgba(20,30,22,.06),0 8px 22px rgba(20,30,22,.07);
+  --display:"Black Han Sans","Noto Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+  --body:"Noto Sans KR","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){:root{
+  --bg:#121613; --surface:#1B201C; --sunk:#232924; --fg:#E7ECE6; --muted:#9BA69E; --line:#2E3530;
+  --accent:#EF5A37; --accent-fg:#1A0E0A; --focus:#7DB8D6; --ok:#6CC08F; --scrim:rgba(0,0,0,.6);
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 22px rgba(0,0,0,.25); color-scheme:dark}}
+
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--body);font-size:15px;line-height:1.55;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  padding-top:env(safe-area-inset-top,0px);padding-bottom:calc(48px + env(safe-area-inset-bottom,0px))}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+[hidden]{display:none!important}
+img{max-width:100%}
+button,input,select,textarea{font:inherit;color:inherit}
+button,label[for]{cursor:pointer}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.wrap{max-width:1180px;margin:0 auto}
+
+/* 머리 */
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);padding-block:14px 10px;display:grid;gap:10px}
+.row1{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.brand{font-family:var(--display);font-weight:400;font-size:26px;margin:0;line-height:1;flex:1 1 auto}
+.brand small{display:block;font-family:var(--body);font-size:12px;color:var(--muted);letter-spacing:.02em;margin-top:6px;font-weight:500}
+.btn{border:0;border-radius:999px;padding:10px 16px;font-weight:700;background:var(--sunk);display:inline-flex;align-items:center;justify-content:center;gap:6px;white-space:nowrap;text-decoration:none;color:inherit}
+.btn.primary{background:var(--accent);color:var(--accent-fg)}
+.btn.ghost{background:transparent;border:1px solid var(--line)}
+.btn.icon{width:42px;height:42px;padding:0}
+.btn:disabled{opacity:.5;cursor:default}
+@media (max-width:480px){
+  .row1{flex-wrap:nowrap;gap:6px}
+  .brand{font-size:22px;min-width:0}
+  .row1 .btn{padding:9px 12px;font-size:14px}
+  .row1 .btn.icon{width:38px;height:38px;padding:0}
+  .long{display:none}
+}
+.search{display:flex;gap:8px;align-items:center}
+.search input{flex:1;min-width:0;border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:11px 14px}
+.search select{border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:11px 10px;max-width:40%}
+.chips{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+.chips::-webkit-scrollbar{display:none}
+.chip{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 12px;font-size:13px;font-weight:500;white-space:nowrap}
+.chip[aria-pressed="true"]{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.chip .n{opacity:.6;margin-left:4px;font-variant-numeric:tabular-nums}
+.notice{background:var(--sunk);border-radius:12px;padding:10px 14px;font-size:13px;color:var(--muted);margin:4px 0 12px}
+.notice b{color:var(--fg)}
+
+/* 격자 */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:14px;margin-top:6px}
+@media (max-width:440px){.grid{grid-template-columns:1fr 1fr;gap:10px}}
+.card{position:relative;display:flex;flex-direction:column;background:var(--surface);border-radius:14px;overflow:hidden;box-shadow:var(--shadow);min-width:0;cursor:pointer;outline-offset:2px}
+.card:hover .cover{transform:scale(1.03)}
+.cbox{overflow:hidden;aspect-ratio:16/10;max-width:100%}
+.cover{width:100%;height:100%;transition:transform .25s ease;position:relative;display:flex;flex-direction:column;justify-content:flex-end;padding:12px;color:var(--cover-fg);overflow:hidden}
+.cover img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.cover .plate{position:absolute;right:-18%;top:-40%;width:72%;aspect-ratio:1;border-radius:50%;border:10px solid rgba(255,255,255,.16);box-shadow:inset 0 0 0 12px rgba(255,255,255,.07)}
+.cover .ttl{position:relative;font-family:var(--display);font-size:clamp(20px,4.6vw,28px);line-height:1.08;word-break:keep-all}
+.cover .cat{position:relative;font-size:11px;letter-spacing:.08em;opacity:.85;margin-bottom:4px;font-weight:700}
+.k-kor{background:var(--c-kor)}.k-west{background:var(--c-west)}.k-chn{background:var(--c-chn)}.k-jpn{background:var(--c-jpn)}.k-des{background:var(--c-des)}.k-etc{background:var(--c-etc)}
+.badge{position:absolute;left:8px;top:8px;z-index:2;background:rgba(0,0,0,.6);color:#fff;font-size:11px;font-weight:700;border-radius:6px;padding:2px 7px;letter-spacing:.04em}
+.fav{position:absolute;right:8px;top:8px;z-index:2;width:32px;height:32px;border:0;border-radius:50%;background:rgba(0,0,0,.42);display:grid;place-items:center;padding:0}
+.fav svg{width:17px;height:17px}
+.meta{padding:10px 12px 12px;display:grid;gap:2px;min-width:0}
+.meta .name{font-weight:700;font-size:14px;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.meta .sub{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.empty{grid-column:1/-1;text-align:center;color:var(--muted);padding:40px 12px}
+
+/* 시트 */
+.scrim{position:fixed;inset:0;background:var(--scrim);z-index:20;display:flex;align-items:flex-end;justify-content:center}
+@media (min-width:760px){.scrim{align-items:center;padding:24px}}
+.sheet{background:var(--surface);width:100%;max-width:640px;max-height:92vh;max-height:92dvh;overflow:auto;border-radius:20px 20px 0 0;overscroll-behavior:contain;
+  padding:18px max(18px,env(safe-area-inset-right,0px)) calc(22px + env(safe-area-inset-bottom,0px)) max(18px,env(safe-area-inset-left,0px));animation:up .22s ease}
+@media (min-width:760px){.sheet{border-radius:20px}}
+@keyframes up{from{transform:translateY(24px);opacity:.6}to{transform:none;opacity:1}}
+@media (prefers-reduced-motion:reduce){.sheet,.cover{animation:none;transition:none}}
+.sheet h2{font-family:var(--display);font-size:26px;line-height:1.2;margin:0;font-weight:400;word-break:keep-all}
+.shead{display:flex;align-items:flex-start;gap:10px;justify-content:space-between}
+.x{border:0;background:var(--sunk);width:36px;height:36px;border-radius:50%;flex:none;font-size:20px;line-height:1}
+.dcover{border-radius:14px;overflow:hidden;aspect-ratio:16/9;max-width:100%;margin:12px 0;position:relative;display:block}
+.dcover .cover .ttl{font-size:clamp(26px,7vw,40px)}
+.dcover .play{position:absolute;inset:0;display:grid;place-items:center}
+.dcover .play span{width:64px;height:44px;border-radius:12px;background:rgba(0,0,0,.65);display:grid;place-items:center}
+.channel{font-size:13px;color:var(--muted);margin-top:4px}
+.facts{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0 14px}
+.fact{background:var(--sunk);border-radius:8px;padding:4px 10px;font-size:13px;font-variant-numeric:tabular-nums}
+.actions{display:flex;gap:8px;flex-wrap:wrap}
+.actions .btn{flex:1 1 auto}
+.sec{margin-top:18px}
+.sec h3{font-size:12px;letter-spacing:.08em;color:var(--muted);margin:0 0 8px;font-weight:700}
+.ing{list-style:none;padding:0;margin:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:4px 14px}
+.ing li{padding:5px 0;border-bottom:1px dashed var(--line)}
+.steps{margin:0;padding-left:22px;display:grid;gap:8px}
+.memo{white-space:pre-wrap;background:var(--sunk);border-radius:10px;padding:10px 12px;margin:0}
+.danger{color:var(--accent)}
+
+/* 입력 */
+form{display:grid;gap:14px;margin-top:12px}
+.f{display:grid;gap:6px;font-size:13px;font-weight:700}
+.f .h{font-weight:400;color:var(--muted);font-size:12px}
+.in{border:1px solid var(--line);background:var(--bg);border-radius:10px;padding:10px 12px;width:100%;min-width:0;font-weight:400;font-size:16px}
+textarea.in{min-height:110px;resize:vertical}
+.three{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+@media (max-width:420px){.three{grid-template-columns:1fr 1fr}}
+.catpick{display:flex;flex-wrap:wrap;gap:6px}
+.catpick input{position:absolute;opacity:0;pointer-events:none}
+.catpick label{border:1px solid var(--line);border-radius:999px;padding:6px 12px;font-size:13px;font-weight:500}
+.catpick input:checked+label{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.catpick input:focus-visible+label{outline:2px solid var(--focus);outline-offset:2px}
+.hint{font-size:12px;font-weight:500;min-height:1.2em}
+.hint.ok{color:var(--ok)}.hint.bad{color:var(--accent)}
+.vprev{display:flex;gap:10px;align-items:center;background:var(--sunk);border-radius:10px;padding:8px}
+.vprev img{width:112px;aspect-ratio:16/9;object-fit:cover;border-radius:6px;flex:none}
+.vprev div{font-size:13px;font-weight:500;min-width:0}
+.vprev small{display:block;color:var(--muted);font-weight:400}
+
+/* 처음 설정 */
+.setup{max-width:520px;margin:8vh auto 0;display:grid;gap:14px}
+.setup h1{font-family:var(--display);font-weight:400;font-size:34px;margin:0}
+.setup p{margin:0;color:var(--muted)}
+.err{color:var(--accent);font-size:13px;font-weight:500;min-height:1.2em}
+
+/* 요리 모드 */
+.cook{position:fixed;inset:0;z-index:30;background:var(--bg);display:flex;flex-direction:column;
+  padding:env(safe-area-inset-top,0px) max(16px,env(safe-area-inset-right,0px)) env(safe-area-inset-bottom,0px) max(16px,env(safe-area-inset-left,0px))}
+.cookTop{display:flex;align-items:center;gap:10px;padding-block:12px}
+.cookTop h2{font-family:var(--display);font-weight:400;font-size:22px;margin:0;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cookBody{flex:1;overflow:auto;display:grid;gap:16px;grid-template-columns:1fr;align-content:start;padding-bottom:12px}
+@media (min-width:820px){.cookBody{grid-template-columns:1fr 320px}}
+.panel{background:var(--surface);border-radius:16px;padding:16px;min-width:0}
+.panel h3{font-size:12px;letter-spacing:.08em;color:var(--muted);margin:0 0 10px;font-weight:700}
+.check{display:flex;gap:10px;align-items:flex-start;padding:7px 0;border-bottom:1px dashed var(--line)}
+.check input{width:20px;height:20px;accent-color:var(--accent);flex:none;margin-top:2px}
+.check input:checked+span{text-decoration:line-through;color:var(--muted)}
+.stepNo{font-variant-numeric:tabular-nums;color:var(--accent);font-weight:700;font-size:14px;letter-spacing:.04em}
+.stepText{font-size:clamp(22px,4.4vw,32px);line-height:1.45;margin:8px 0 0;font-weight:500;word-break:keep-all}
+.dots{display:flex;gap:5px;flex-wrap:wrap;margin-top:16px}
+.dots i{width:22px;height:5px;border-radius:3px;background:var(--line)}
+.dots i.on{background:var(--accent)}
+.cookNav{display:flex;gap:10px;padding-block:10px 14px}
+.cookNav .btn{flex:1;padding:16px;font-size:17px}
+.timer{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:16px}
+.timer .clock{font-variant-numeric:tabular-nums;font-size:24px;font-weight:700;min-width:84px}
+.timer .clock.ring{color:var(--accent)}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:10px 16px;border-radius:999px;font-size:14px;z-index:40;max-width:90vw;text-align:center}
+</style>
+</head>
+<body>
+
+<!-- 처음 설정 화면 -->
+<section class="setup" id="setup" hidden>
+  <h1>레시피 서랍</h1>
+  <p>구글 시트에 만든 레시피 저장소와 연결해 주세요. 기기마다 한 번만 하면 돼요.</p>
+  <form id="setupForm" novalidate>
+    <label class="f">웹앱 주소 <span class="h">Apps Script 배포 후 받은 https://script.google.com/macros/s/…/exec</span>
+      <input class="in" id="sUrl" inputmode="url" autocomplete="off" placeholder="https://script.google.com/macros/s/…/exec"></label>
+    <label class="f">API 키 <span class="h">setupKey 실행 기록에 나온 긴 영문·숫자</span>
+      <input class="in" id="sKey" autocomplete="off" spellcheck="false"></label>
+    <div class="err" id="setupErr"></div>
+    <button class="btn primary" type="submit" id="setupBtn">연결하기</button>
+  </form>
+  <p style="font-size:13px">PC에서 이미 연결했다면 PC 화면의 ⚙ 버튼 → <b>폰 연결 링크 복사</b>로 받은 주소를 폰에서 열면 바로 연결돼요.</p>
+</section>
+
+<div class="wrap" id="app" hidden>
+  <header class="top">
+    <div class="row1">
+      <h1 class="brand">레시피 서랍<small id="countLine">불러오는 중…</small></h1>
+      <button class="btn ghost" id="pickBtn" type="button"><span class="long">오늘&nbsp;</span>뭐 먹지?</button>
+      <button class="btn primary" id="addBtn" type="button">+ 저장</button>
+      <button class="btn ghost icon" id="setBtn" type="button" aria-label="설정">⚙</button>
+    </div>
+    <div class="search">
+      <input id="q" type="search" placeholder="메뉴, 재료, 채널로 찾기" autocomplete="off">
+      <select id="sort" aria-label="정렬">
+        <option value="recent">최근 저장순</option>
+        <option value="cooked">자주 만든 순</option>
+        <option value="quick">빨리 되는 순</option>
+        <option value="name">이름순</option>
+      </select>
+    </div>
+    <div class="chips" id="chips" role="toolbar" aria-label="분류"></div>
+  </header>
+  <div id="notice" class="notice" hidden></div>
+  <main class="grid" id="grid" aria-live="polite"></main>
+</div>
+
+<div class="scrim" id="detail" hidden><div class="sheet" role="dialog" aria-modal="true" aria-labelledby="dTitle" id="detailSheet"></div></div>
+<div class="scrim" id="editor" hidden><div class="sheet" role="dialog" aria-modal="true" aria-labelledby="eTitle" id="editorSheet"></div></div>
+<div class="scrim" id="settings" hidden><div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sTitle" id="settingsSheet"></div></div>
+<div class="cook" id="cook" hidden></div>
+<div class="toast" id="toast" role="status" hidden></div>
+
+<script>
+(() => {
+const CATS = [
+  {k:'kor', n:'한식'}, {k:'west', n:'양식'}, {k:'chn', n:'중식'},
+  {k:'jpn', n:'일식'}, {k:'des', n:'디저트·빵'}, {k:'etc', n:'기타'}
+];
+const catName = k => (CATS.find(c => c.k === k) || CATS[5]).n;
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const st = {
+  get(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } },
+  set(k,v){ try{ localStorage.setItem(k,v); }catch(e){} },
+  del(k){ try{ localStorage.removeItem(k); }catch(e){} }
+};
+const K_URL = 'recipeUrl', K_KEY = 'recipeKey', K_CACHE = 'recipeCache';
+
+let recipes = [], loaded = false, lastLoad = 0;
+let filter = 'all', query = '', sort = 'recent';
+let shareIn = null;
+
+/* ---------- 유튜브 ---------- */
+function ytId(url){
+  try{
+    const u = new URL(String(url).trim());
+    const h = u.hostname.replace(/^(www|m|music)\./,'');
+    if(h === 'youtu.be') return u.pathname.slice(1).split('/')[0] || null;
+    if(h.endsWith('youtube.com')){
+      if(u.searchParams.get('v')) return u.searchParams.get('v');
+      const m = u.pathname.match(/^\/(shorts|live|embed)\/([\w-]{6,})/);
+      if(m) return m[2];
+    }
+  }catch(e){}
+  return null;
+}
+function ytStart(url){
+  try{
+    const t = new URL(String(url).trim()).searchParams.get('t');
+    if(!t) return 0;
+    if(/^\d+s?$/.test(t)) return parseInt(t);
+    const m = t.match(/(?:(\d+)h)?(?:(\d+)m)?(?:(\d+)s)?/);
+    return m ? (+(m[1]||0))*3600 + (+(m[2]||0))*60 + (+(m[3]||0)) : 0;
+  }catch(e){ return 0; }
+}
+const findUrl = s => (String(s||'').match(/https?:\/\/\S+/) || [''])[0];
+const thumb = id => 'https://i.ytimg.com/vi/' + encodeURIComponent(id) + '/hqdefault.jpg';
+const parseMMSS = s => { s = String(s||'').trim(); if(!s) return 0; const p = s.split(':').map(Number); if(p.some(isNaN)) return 0; return p.reduce((a,b)=>a*60+b,0); };
+const fmtMMSS = n => { n = +n||0; if(!n) return ''; const h=Math.floor(n/3600), m=Math.floor(n%3600/60), s=n%60; return (h? h+':'+String(m).padStart(2,'0') : m)+':'+String(s).padStart(2,'0'); };
+function watchUrl(r){
+  if(r.videoId) return 'https://www.youtube.com/watch?v=' + encodeURIComponent(r.videoId) + (r.start ? '&t=' + r.start + 's' : '');
+  return /^https:\/\//.test(r.url||'') ? r.url : null;
+}
+
+/* ---------- 서버 ---------- */
+async function api(method, payload){
+  const u = st.get(K_URL), k = st.get(K_KEY);
+  if(!u || !k) throw new Error('setup');
+  let res;
+  if(method === 'GET'){
+    const qs = new URLSearchParams(Object.assign({key:k}, payload||{}));
+    res = await fetch(u + '?' + qs);
+  }else{
+    // Content-Type을 지정하지 않아야(text/plain) 구글 웹앱이 브라우저 요청을 받아 줘요
+    res = await fetch(u, {method:'POST', body: JSON.stringify(Object.assign({key:k}, payload))});
+  }
+  const d = await res.json();
+  if(!d.ok) throw new Error(d.error || 'error');
+  return d;
+}
+
+async function load(force){
+  if(!force && Date.now() - lastLoad < 30000) return;
+  lastLoad = Date.now();
+  try{
+    const d = await api('GET');
+    recipes = d.recipes || [];
+    loaded = true;
+    st.set(K_CACHE, JSON.stringify(recipes));
+    $('notice').hidden = true;
+    render();
+    if(openId) refreshDetail();
+  }catch(e){
+    if(e.message === 'unauthorized'){ disconnect('키가 맞지 않아요. 다시 연결해 주세요.'); return; }
+    loaded = true;
+    $('notice').innerHTML = '<b>인터넷에 연결되지 않았어요.</b> 마지막으로 불러온 레시피를 보여주고 있어요. 저장과 수정은 연결된 뒤에 할 수 있어요.';
+    $('notice').hidden = false;
+    render();
+  }
+}
+function upsertLocal(r){
+  const i = recipes.findIndex(x => x.id === r.id);
+  if(i >= 0) recipes[i] = r; else recipes.unshift(r);
+  st.set(K_CACHE, JSON.stringify(recipes));
+  render();
+}
+
+/* ---------- 목록 ---------- */
+function visible(){
+  const q = query.trim().toLowerCase();
+  const list = recipes.filter(r => {
+    if(filter === 'fav' && !r.fav) return false;
+    if(filter !== 'all' && filter !== 'fav' && r.cat !== filter) return false;
+    if(!q) return true;
+    return [r.title, r.memo, r.channel, catName(r.cat), ...(r.ingredients||[])].join(' ').toLowerCase().includes(q);
+  });
+  const by = {
+    recent:(a,b)=>(b.createdAt||0)-(a.createdAt||0),
+    cooked:(a,b)=>(b.cookCount||0)-(a.cookCount||0) || (b.lastCooked||0)-(a.lastCooked||0),
+    quick:(a,b)=>(a.minutes||999)-(b.minutes||999),
+    name:(a,b)=>String(a.title).localeCompare(String(b.title),'ko')
+  }[sort];
+  return list.slice().sort(by);
+}
+function genCover(r){
+  return '<div class="plate"></div><div class="cat">' + esc(catName(r.cat)) + '</div><div class="ttl">' + esc(r.title) + '</div>';
+}
+function coverHTML(r){
+  // 썸네일을 못 불러오면 메뉴 이름 표지로 바꿈
+  const img = r.videoId ? '<img alt="" loading="lazy" src="' + esc(thumb(r.videoId)) + '" onerror="this.parentNode.innerHTML=this.parentNode.dataset.gen">' : '';
+  return '<div class="cover k-' + esc(r.cat||'etc') + '" data-gen="' + esc(genCover(r)) + '">' + (img || genCover(r)) + '</div>';
+}
+const STAR = on => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5l2.6 5.4 5.9.8-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8L3.5 9.7l5.9-.8z" fill="' + (on ? '#FFC93C' : 'none') + '" stroke="#fff" stroke-width="1.6" stroke-linejoin="round"/></svg>';
+function sub(r){
+  const bits = [];
+  if(r.minutes) bits.push(r.minutes + '분');
+  if(r.servings) bits.push(r.servings + '인분');
+  bits.push(catName(r.cat));
+  if(r.cookCount) bits.push(r.cookCount + '번 만듦');
+  return bits.join(' · ');
+}
+function render(){
+  const counts = {all: recipes.length, fav: recipes.filter(r => r.fav).length};
+  CATS.forEach(c => counts[c.k] = recipes.filter(r => r.cat === c.k).length);
+  const chipDefs = [{k:'all', n:'전체'}, {k:'fav', n:'즐겨찾기'}, ...CATS].filter(c => c.k === 'all' || c.k === filter || counts[c.k]);
+  $('chips').innerHTML = chipDefs.map(c => '<button type="button" class="chip" data-f="' + c.k + '" aria-pressed="' + (filter === c.k) + '">' + esc(c.n) + '<span class="n">' + (counts[c.k]||0) + '</span></button>').join('');
+
+  if(!loaded && !recipes.length){ $('countLine').textContent = '불러오는 중…'; $('grid').innerHTML = '<div class="empty">레시피를 불러오는 중이에요</div>'; return; }
+  $('countLine').textContent = recipes.length ? '저장한 레시피 ' + recipes.length + '개' : '아직 저장한 레시피가 없어요';
+  if(!recipes.length){
+    $('grid').innerHTML = '<div class="empty">유튜브에서 마음에 드는 요리 영상을 찾으면<br><b>공유 → 링크 복사</b> 후 <b>+ 저장</b>을 눌러 붙여넣으세요.<br>안드로이드는 공유 목록에서 <b>레시피 서랍</b>을 바로 고를 수 있어요.</div>';
+    return;
+  }
+  const list = visible();
+  if(!list.length){ $('grid').innerHTML = '<div class="empty">' + (query ? '‘' + esc(query) + '’에 맞는 레시피가 없어요' : '이 분류에는 아직 레시피가 없어요') + '</div>'; return; }
+  $('grid').innerHTML = list.map(r =>
+    '<div class="card" role="button" tabindex="0" data-id="' + esc(r.id) + '" aria-label="' + esc(r.title) + '">' +
+      '<button type="button" class="fav" data-fav="' + esc(r.id) + '" aria-label="' + (r.fav ? '즐겨찾기 해제' : '즐겨찾기') + '">' + STAR(r.fav) + '</button>' +
+      '<div class="cbox">' + coverHTML(r) + '</div>' +
+      '<div class="meta"><div class="name">' + esc(r.title) + '</div><div class="sub">' + esc(sub(r)) + '</div></div>' +
+    '</div>').join('');
+}
+
+/* ---------- 상세 ---------- */
+let openId = null;
+const find = id => recipes.find(r => r.id === id);
+function openDetail(id){ openId = id; refreshDetail(); $('detail').hidden = false; }
+function closeDetail(){ openId = null; $('detail').hidden = true; }
+function refreshDetail(){
+  const r = find(openId);
+  if(!r){ closeDetail(); return; }
+  const url = watchUrl(r);
+  const facts = [r.minutes && r.minutes + '분', r.servings && r.servings + '인분', catName(r.cat), r.start && '영상 ' + fmtMMSS(r.start) + '부터', r.cookCount && r.cookCount + '번 만듦'].filter(Boolean);
+  const cover = coverHTML(r) + (url && r.videoId ? '<div class="play"><span><svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z" fill="#fff"/></svg></span></div>' : '');
+  $('detailSheet').innerHTML =
+    '<div class="shead"><div><h2 id="dTitle">' + esc(r.title) + '</h2>' + (r.channel ? '<div class="channel">' + esc(r.channel) + '</div>' : '') + '</div><button type="button" class="x" data-close aria-label="닫기">×</button></div>' +
+    (url ? '<a class="dcover" href="' + esc(url) + '" target="_blank" rel="noopener" aria-label="유튜브에서 영상 보기">' + cover + '</a>' : '<div class="dcover">' + cover + '</div>') +
+    '<div class="facts">' + facts.map(f => '<span class="fact">' + esc(f) + '</span>').join('') + '</div>' +
+    '<div class="actions">' +
+      '<button type="button" class="btn primary" data-cook>요리 시작</button>' +
+      (url ? '<a class="btn" href="' + esc(url) + '" target="_blank" rel="noopener">유튜브에서 보기</a>' : '') +
+    '</div>' +
+    (r.ingredients && r.ingredients.length ? '<div class="sec"><h3>재료 ' + r.ingredients.length + '가지</h3><ul class="ing">' + r.ingredients.map(i => '<li>' + esc(i) + '</li>').join('') + '</ul></div>' : '') +
+    (r.steps && r.steps.length ? '<div class="sec"><h3>순서</h3><ol class="steps">' + r.steps.map(s => '<li>' + esc(s) + '</li>').join('') + '</ol></div>' : '') +
+    (r.memo ? '<div class="sec"><h3>메모</h3><p class="memo">' + esc(r.memo) + '</p></div>' : '') +
+    (!(r.ingredients||[]).length && !(r.steps||[]).length ? '<div class="sec notice">재료와 순서를 적어 두면 요리 모드에서 한 단계씩 볼 수 있어요. <b>수정</b>을 눌러 추가해 보세요.</div>' : '') +
+    '<div class="sec actions"><button type="button" class="btn ghost" data-edit>수정</button><button type="button" class="btn ghost danger" data-del>삭제</button></div>';
+}
+
+/* ---------- 저장/수정 ---------- */
+let editing = null, metaFor = '';
+function openEditor(r, pre){
+  editing = r || null;
+  const v = Object.assign({}, editing || {}, pre || {});
+  metaFor = '';
+  $('editorSheet').innerHTML =
+    '<div class="shead"><h2 id="eTitle">' + (editing ? '레시피 수정' : '레시피 저장') + '</h2><button type="button" class="x" data-close aria-label="닫기">×</button></div>' +
+    '<form id="form" novalidate>' +
+      '<label class="f">유튜브 링크 <span class="h">유튜브에서 공유 → 링크 복사 후 붙여넣기</span>' +
+        '<input class="in" id="fUrl" inputmode="url" autocomplete="off" placeholder="https://youtu.be/…" value="' + esc(v.url||'') + '"><span class="hint" id="urlHint"></span></label>' +
+      '<div class="vprev" id="vprev" hidden></div>' +
+      '<label class="f">메뉴 이름 <span class="h">영상 제목이 자동으로 들어가요. 짧게 고쳐도 좋아요</span><input class="in" id="fTitle" maxlength="60" placeholder="예: 제육볶음" value="' + esc(v.title||'') + '"></label>' +
+      '<div class="f">분류<div class="catpick">' +
+        CATS.map(c => '<input type="radio" name="cat" id="cat-' + c.k + '" value="' + c.k + '"' + ((v.cat||'kor') === c.k ? ' checked' : '') + '><label for="cat-' + c.k + '">' + c.n + '</label>').join('') +
+      '</div></div>' +
+      '<div class="three">' +
+        '<label class="f">조리 시간(분)<input class="in" id="fMin" type="number" min="1" max="999" inputmode="numeric" value="' + esc(v.minutes||'') + '"></label>' +
+        '<label class="f">몇 인분<input class="in" id="fSrv" type="number" min="1" max="50" inputmode="numeric" value="' + esc(v.servings||'') + '"></label>' +
+        '<label class="f">영상 시작 지점<input class="in" id="fStart" placeholder="3:20" value="' + esc(fmtMMSS(v.start)) + '"></label>' +
+      '</div>' +
+      '<label class="f">재료 <span class="h">한 줄에 하나씩 · 요리 모드에서 체크할 수 있어요</span><textarea class="in" id="fIng" placeholder="돼지고기 앞다리살 300g&#10;고추장 2큰술">' + esc((v.ingredients||[]).join('\n')) + '</textarea></label>' +
+      '<label class="f">순서 <span class="h">한 줄에 한 단계씩</span><textarea class="in" id="fSteps" placeholder="고기에 양념을 버무려 10분 재운다&#10;센불에 볶는다">' + esc((v.steps||[]).join('\n')) + '</textarea></label>' +
+      '<label class="f">메모 <textarea class="in" id="fMemo" style="min-height:70px" placeholder="다음엔 설탕 반만">' + esc(v.memo||'') + '</textarea></label>' +
+      '<div class="actions"><button class="btn primary" id="saveBtn" type="submit">저장</button></div>' +
+    '</form>';
+  $('editor').hidden = false;
+  $('editorSheet').dataset.channel = v.channel || '';
+  urlChanged();
+  setTimeout(() => { const f = $(v.url ? 'fTitle' : 'fUrl'); if(f && matchMedia('(pointer:fine)').matches) f.focus(); }, 60);
+}
+async function urlChanged(){
+  const raw = $('fUrl').value.trim(), h = $('urlHint'), pv = $('vprev');
+  const u = findUrl(raw) || raw;
+  if(u !== raw) $('fUrl').value = u;
+  if(!u){ h.textContent = ''; h.className = 'hint'; pv.hidden = true; return; }
+  const id = ytId(u);
+  if(!id){
+    pv.hidden = true;
+    if(/^https:\/\//.test(u)){ h.textContent = '유튜브 링크가 아니지만 그대로 저장할게요'; h.className = 'hint'; }
+    else { h.textContent = 'https://로 시작하는 링크를 붙여넣어 주세요'; h.className = 'hint bad'; }
+    return;
+  }
+  const t = ytStart(u);
+  h.textContent = '유튜브 영상을 찾았어요' + (t ? ' · ' + fmtMMSS(t) + '부터 재생' : ''); h.className = 'hint ok';
+  if(t && !$('fStart').value) $('fStart').value = fmtMMSS(t);
+  const ch = $('editorSheet').dataset.channel;
+  pv.innerHTML = '<img alt="" src="' + esc(thumb(id)) + '"><div id="vinfo">' + (ch ? '<small>' + esc(ch) + '</small>' : '<small>영상 정보를 가져오는 중…</small>') + '</div>';
+  pv.hidden = false;
+  if(metaFor === id) return;
+  metaFor = id;
+  try{
+    const m = await api('GET', {action:'meta', url:u});
+    if(metaFor !== id || !$('vinfo')) return;
+    $('editorSheet').dataset.channel = m.channel || '';
+    $('vinfo').innerHTML = esc(m.title) + '<small>' + esc(m.channel) + '</small>';
+    if(!$('fTitle').value.trim()) $('fTitle').value = m.title;
+  }catch(e){
+    if($('vinfo')) $('vinfo').innerHTML = '<small>영상 제목을 가져오지 못했어요. 메뉴 이름을 직접 적어 주세요.</small>';
+  }
+}
+async function submitForm(e){
+  e.preventDefault();
+  const title = $('fTitle').value.trim();
+  if(!title){ $('fTitle').focus(); toast('메뉴 이름을 적어 주세요'); return; }
+  const url = $('fUrl').value.trim();
+  const lines = s => s.split('\n').map(x => x.replace(/^\s*(\d+[.)]|[-•*])\s*/, '').trim()).filter(Boolean);
+  const rec = Object.assign({}, editing || {fav:false}, {
+    title, url: /^https:\/\//.test(url) ? url : '', videoId: ytId(url) || '',
+    channel: ytId(url) ? ($('editorSheet').dataset.channel || '') : '',
+    cat: (document.querySelector('input[name="cat"]:checked') || {}).value || 'etc',
+    minutes: Math.max(0, parseInt($('fMin').value) || 0), servings: Math.max(0, parseInt($('fSrv').value) || 0),
+    start: parseMMSS($('fStart').value),
+    ingredients: lines($('fIng').value), steps: lines($('fSteps').value), memo: $('fMemo').value.trim()
+  });
+  const btn = $('saveBtn'); btn.disabled = true; btn.textContent = '저장하는 중…';
+  try{
+    const d = await api('POST', {action:'save', recipe: rec});
+    upsertLocal(d.recipe);
+    $('editor').hidden = true;
+    toast(editing ? '수정했어요' : '‘' + title + '’ 저장했어요');
+    if(openId) refreshDetail();
+  }catch(err){
+    btn.disabled = false; btn.textContent = '저장';
+    toast(navigator.onLine === false ? '인터넷에 연결되지 않아 저장하지 못했어요' : '저장하지 못했어요. 다시 눌러 주세요.');
+  }
+}
+
+/* ---------- 요리 모드 ---------- */
+let cook = null, wake = null, tick = null;
+async function lockScreen(){
+  try{ wake = await navigator.wakeLock.request('screen'); wake.addEventListener('release', () => { wake = null; }); }catch(e){ wake = null; }
+}
+function startCook(id){
+  const r = find(id); if(!r) return;
+  cook = {r, i: 0, checked: new Set(), left: 0};
+  $('detail').hidden = true;
+  $('cook').hidden = false;
+  renderCook();
+  lockScreen();
+  api('POST', {action:'cook', id}).then(d => { upsertLocal(d.recipe); if(cook) cook.r = d.recipe; }).catch(() => {});
+}
+function endCook(){
+  $('cook').hidden = true; clearInterval(tick); tick = null; cook = null;
+  if(wake){ wake.release().catch(() => {}); wake = null; }
+  if(openId){ refreshDetail(); $('detail').hidden = false; }
+}
+function renderCook(){
+  const {r, i} = cook; const steps = r.steps && r.steps.length ? r.steps : ['영상을 보며 따라 만들어 보세요'];
+  const url = watchUrl(r);
+  $('cook').innerHTML =
+    '<div class="cookTop"><button type="button" class="x" data-endcook aria-label="요리 모드 닫기">×</button><h2>' + esc(r.title) + '</h2>' +
+      (url ? '<a class="btn" href="' + esc(url) + '" target="_blank" rel="noopener">영상</a>' : '') + '</div>' +
+    '<div class="cookBody">' +
+      '<section class="panel" aria-label="현재 단계">' +
+        '<div class="stepNo">STEP ' + (i+1) + ' / ' + steps.length + '</div>' +
+        '<p class="stepText">' + esc(steps[i]) + '</p>' +
+        '<div class="dots">' + steps.map((_, k) => '<i class="' + (k <= i ? 'on' : '') + '"></i>').join('') + '</div>' +
+        '<div class="timer"><span class="clock" id="clock">' + clockText() + '</span>' +
+          [1,3,5,10].map(m => '<button type="button" class="chip" data-t="' + m + '">' + m + '분</button>').join('') +
+          '<button type="button" class="chip" data-tstop>정지</button></div>' +
+      '</section>' +
+      (r.ingredients && r.ingredients.length ? '<section class="panel" aria-label="재료"><h3 id="ckHead">재료 체크 · ' + cook.checked.size + '/' + r.ingredients.length + '</h3>' +
+        r.ingredients.map((g, k) => '<label class="check"><input type="checkbox" data-ck="' + k + '"' + (cook.checked.has(k) ? ' checked' : '') + '><span>' + esc(g) + '</span></label>').join('') + '</section>' : '') +
+    '</div>' +
+    '<div class="cookNav"><button type="button" class="btn" data-prev' + (i === 0 ? ' disabled' : '') + '>이전</button>' +
+      (i < steps.length - 1 ? '<button type="button" class="btn primary" data-next>다음 단계</button>' : '<button type="button" class="btn primary" data-endcook>완성!</button>') + '</div>';
+}
+function clockText(){ const s = cook ? cook.left : 0; return String(Math.floor(s/60)).padStart(2,'0') + ':' + String(s%60).padStart(2,'0'); }
+function setTimer(min){
+  clearInterval(tick); cook.left = min * 60;
+  const c = $('clock'); c.classList.remove('ring'); c.textContent = clockText();
+  const end = Date.now() + min * 60000;
+  tick = setInterval(() => {
+    if(!cook){ clearInterval(tick); return; }
+    cook.left = Math.max(0, Math.round((end - Date.now()) / 1000));
+    const el = $('clock'); if(el) el.textContent = clockText();
+    if(cook.left === 0){ clearInterval(tick); if(el) el.classList.add('ring'); toast('⏰ 타이머 끝!'); try{ navigator.vibrate && navigator.vibrate([300,150,300,150,300]); }catch(e){} beep(); }
+  }, 500);
+}
+function beep(){
+  try{
+    const a = new (window.AudioContext || window.webkitAudioContext)();
+    [0, .35, .7].forEach(t => { const o = a.createOscillator(), g = a.createGain(); o.frequency.value = 880; o.connect(g); g.connect(a.destination); g.gain.setValueAtTime(.2, a.currentTime + t); g.gain.exponentialRampToValueAtTime(.001, a.currentTime + t + .25); o.start(a.currentTime + t); o.stop(a.currentTime + t + .3); });
+  }catch(e){}
+}
+
+/* ---------- 설정/연결 ---------- */
+function connectLink(){
+  const data = btoa(unescape(encodeURIComponent(JSON.stringify({u: st.get(K_URL), k: st.get(K_KEY)}))));
+  return location.origin + location.pathname + '#connect=' + data;
+}
+function openSettings(){
+  $('settingsSheet').innerHTML =
+    '<div class="shead"><h2 id="sTitle">설정</h2><button type="button" class="x" data-close aria-label="닫기">×</button></div>' +
+    '<div class="sec"><h3>다른 기기 연결</h3><p style="margin:0 0 10px">이 링크를 폰에서 열면 주소와 키를 입력하지 않아도 바로 연결돼요. 링크에 키가 들어 있으니 다른 사람에게 보내지 마세요.</p>' +
+      '<div class="actions"><button type="button" class="btn primary" id="copyLink">폰 연결 링크 복사</button></div></div>' +
+    '<div class="sec"><h3>앱으로 설치</h3><p style="margin:0">아이폰: 사파리 공유 버튼 → <b>홈 화면에 추가</b><br>안드로이드: 크롬 ⋮ → <b>앱 설치</b> 또는 <b>홈 화면에 추가</b><br>PC 크롬·엣지: 주소창 오른쪽 설치 아이콘</p></div>' +
+    '<div class="sec"><h3>데이터</h3><p style="margin:0 0 10px">레시피는 구글 시트의 <b>recipes</b> 탭에 저장돼요. 시트 자체가 백업이에요.</p>' +
+      '<div class="actions"><button type="button" class="btn ghost" id="reload">지금 새로 불러오기</button><button type="button" class="btn ghost danger" id="unlink">이 기기 연결 끊기</button></div></div>';
+  $('settings').hidden = false;
+}
+function disconnect(msg){
+  st.del(K_URL); st.del(K_KEY); st.del(K_CACHE);
+  recipes = []; loaded = false;
+  ['detail','editor','settings'].forEach(id => $(id).hidden = true);
+  $('app').hidden = true; $('setup').hidden = false;
+  $('setupErr').textContent = msg || '';
+}
+async function trySetup(u, k){
+  u = String(u||'').trim(); k = String(k||'').trim();
+  if(!/^https:\/\/script\.google\.com\/macros\/s\/[\w-]+\/exec$/.test(u)) throw new Error('웹앱 주소는 https://script.google.com/macros/s/…/exec 모양이어야 해요.');
+  if(!k) throw new Error('API 키를 넣어 주세요.');
+  st.set(K_URL, u); st.set(K_KEY, k);
+  try{ await api('GET'); }
+  catch(e){ st.del(K_URL); st.del(K_KEY); throw new Error(e.message === 'unauthorized' ? 'API 키가 맞지 않아요.' : '웹앱에 연결하지 못했어요. 주소와 배포 설정(액세스: 모든 사용자)을 확인해 주세요.'); }
+}
+function startApp(){
+  $('setup').hidden = true; $('app').hidden = false;
+  try{ recipes = JSON.parse(st.get(K_CACHE)) || []; }catch(e){ recipes = []; }
+  render();
+  load(true).then(() => { if(shareIn){ const s = shareIn; shareIn = null; openEditor(null, s); } });
+}
+
+/* ---------- 알림 ---------- */
+let toastT = null;
+function toast(msg){ const t = $('toast'); t.textContent = msg; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => t.hidden = true, 2600); }
+async function copyText(s){
+  try{ await navigator.clipboard.writeText(s); return true; }
+  catch(e){
+    const ta = document.createElement('textarea'); ta.value = s; document.body.appendChild(ta); ta.select();
+    let ok = false; try{ ok = document.execCommand('copy'); }catch(x){} ta.remove(); return ok;
+  }
+}
+
+/* ---------- 이벤트 ---------- */
+$('setupForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const b = $('setupBtn'); b.disabled = true; b.textContent = '확인하는 중…'; $('setupErr').textContent = '';
+  try{ await trySetup($('sUrl').value, $('sKey').value); startApp(); toast('연결했어요'); }
+  catch(err){ $('setupErr').textContent = err.message; }
+  b.disabled = false; b.textContent = '연결하기';
+});
+$('q').addEventListener('input', e => { query = e.target.value; render(); });
+$('sort').addEventListener('change', e => { sort = e.target.value; render(); });
+$('chips').addEventListener('click', e => { const b = e.target.closest('[data-f]'); if(b){ filter = b.dataset.f; render(); } });
+$('addBtn').addEventListener('click', () => openEditor(null));
+$('setBtn').addEventListener('click', openSettings);
+$('pickBtn').addEventListener('click', () => {
+  const list = visible(); if(!list.length){ toast('고를 레시피가 없어요'); return; }
+  const r = list[Math.floor(Math.random() * list.length)];
+  openDetail(r.id); toast('오늘은 ‘' + r.title + '’ 어때요?');
+});
+$('grid').addEventListener('click', async e => {
+  const f = e.target.closest('[data-fav]');
+  if(f){
+    e.stopPropagation();
+    const r = find(f.dataset.fav); if(!r) return;
+    const next = Object.assign({}, r, {fav: !r.fav});
+    upsertLocal(next);
+    try{ const d = await api('POST', {action:'save', recipe: next}); upsertLocal(d.recipe); }
+    catch(err){ upsertLocal(r); toast('즐겨찾기를 저장하지 못했어요'); }
+    return;
+  }
+  const c = e.target.closest('.card'); if(c) openDetail(c.dataset.id);
+});
+$('grid').addEventListener('keydown', e => { if((e.key === 'Enter' || e.key === ' ') && e.target.classList.contains('card')){ e.preventDefault(); openDetail(e.target.dataset.id); } });
+
+$('detail').addEventListener('click', async e => {
+  if(e.target === $('detail') || e.target.closest('[data-close]')){ closeDetail(); return; }
+  if(e.target.closest('[data-cook]')){ startCook(openId); return; }
+  if(e.target.closest('[data-edit]')){ openEditor(find(openId)); return; }
+  const d = e.target.closest('[data-del]');
+  if(d){
+    if(d.dataset.armed !== '1'){ d.dataset.armed = '1'; d.textContent = '한 번 더 누르면 삭제'; setTimeout(() => { if(d.isConnected){ d.dataset.armed = ''; d.textContent = '삭제'; } }, 3000); return; }
+    const r = find(openId); d.disabled = true;
+    try{
+      await api('POST', {action:'delete', id: r.id});
+      recipes = recipes.filter(x => x.id !== r.id); st.set(K_CACHE, JSON.stringify(recipes)); render();
+      closeDetail(); toast('‘' + r.title + '’ 삭제했어요');
+    }catch(err){ d.disabled = false; toast('삭제하지 못했어요'); }
+  }
+});
+$('editor').addEventListener('click', e => { if(e.target === $('editor') || e.target.closest('[data-close]')) $('editor').hidden = true; });
+let urlT = null;
+$('editor').addEventListener('input', e => { if(e.target.id === 'fUrl'){ clearTimeout(urlT); urlT = setTimeout(urlChanged, 250); } });
+$('editor').addEventListener('submit', submitForm);
+$('settings').addEventListener('click', async e => {
+  if(e.target === $('settings') || e.target.closest('[data-close]')){ $('settings').hidden = true; return; }
+  if(e.target.id === 'copyLink'){ toast(await copyText(connectLink()) ? '연결 링크를 복사했어요. 폰으로 보내서 열어 보세요.' : '복사하지 못했어요'); }
+  if(e.target.id === 'reload'){ $('settings').hidden = true; await load(true); toast('새로 불러왔어요'); }
+  if(e.target.id === 'unlink'){
+    if(e.target.dataset.armed !== '1'){ e.target.dataset.armed = '1'; e.target.textContent = '한 번 더 누르면 끊기'; return; }
+    disconnect('연결을 끊었어요. 시트의 레시피는 그대로 있어요.');
+  }
+});
+$('cook').addEventListener('click', e => {
+  if(e.target.closest('[data-endcook]')){ endCook(); return; }
+  if(e.target.closest('[data-next]')){ cook.i++; renderCook(); return; }
+  if(e.target.closest('[data-prev]')){ cook.i = Math.max(0, cook.i - 1); renderCook(); return; }
+  const t = e.target.closest('[data-t]'); if(t){ setTimer(+t.dataset.t); return; }
+  if(e.target.closest('[data-tstop]')){ clearInterval(tick); cook.left = 0; $('clock').textContent = clockText(); }
+});
+$('cook').addEventListener('change', e => {
+  const k = e.target.dataset.ck; if(k == null) return;
+  e.target.checked ? cook.checked.add(+k) : cook.checked.delete(+k);
+  $('ckHead').textContent = '재료 체크 · ' + cook.checked.size + '/' + cook.r.ingredients.length;
+});
+document.addEventListener('keydown', e => {
+  if(e.key !== 'Escape') return;
+  if(!$('cook').hidden) endCook();
+  else if(!$('editor').hidden) $('editor').hidden = true;
+  else if(!$('settings').hidden) $('settings').hidden = true;
+  else if(!$('detail').hidden) closeDetail();
+});
+document.addEventListener('visibilitychange', () => {
+  if(document.visibilityState !== 'visible') return;
+  if(cook && !wake) lockScreen();
+  if(!$('app').hidden && $('editor').hidden) load(false);
+});
+
+/* ---------- 시작 ---------- */
+(async function boot(){
+  // 공유로 들어온 경우 (안드로이드: 유튜브 → 공유 → 레시피 서랍)
+  const p = new URLSearchParams(location.search);
+  if(p.has('share') || p.has('url') || p.has('text')){
+    const u = findUrl(p.get('url')) || findUrl(p.get('text')) || findUrl(p.get('title'));
+    if(u) shareIn = {url: u};
+    history.replaceState(null, '', location.pathname);
+  }
+  // 연결 링크로 들어온 경우
+  const m = location.hash.match(/^#connect=(.+)$/);
+  if(m){
+    history.replaceState(null, '', location.pathname + location.search);
+    try{
+      const c = JSON.parse(decodeURIComponent(escape(atob(m[1]))));
+      $('app').hidden = true; $('setup').hidden = false; $('setupErr').textContent = '연결하는 중…';
+      await trySetup(c.u, c.k);
+      startApp(); toast('연결했어요');
+      return;
+    }catch(err){ $('setupErr').textContent = err.message || '연결 링크가 올바르지 않아요.'; return; }
+  }
+  if(st.get(K_URL) && st.get(K_KEY)) startApp();
+  else $('setup').hidden = false;
+})();
+
+if('serviceWorker' in navigator){
+  addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+}
+})();
+</script>
+</body>
+</html>
