@@ -142,12 +142,8 @@ textarea.in{min-height:110px;resize:vertical}
 .vprev small{display:block;color:var(--muted);font-weight:400}
 
 /* 단계 카드 */
-.frame{position:relative;aspect-ratio:16/9;max-width:100%;background-color:var(--sunk);background-repeat:no-repeat;border-radius:10px;overflow:hidden}
-.frame img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
-.frame.none{display:grid;place-items:center;color:var(--muted);font-size:12px;text-align:center;padding:6px}
-.scards{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
-.scard{background:var(--sunk);border-radius:12px;padding:8px;display:grid;gap:8px;align-content:start;min-width:0}
-.scard .frame{border-radius:8px}
+.scards{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px}
+.scard{background:var(--sunk);border-radius:12px;padding:10px 12px;display:grid;gap:6px;align-content:start;min-width:0}
 .scard .no{font-size:12px;font-weight:700;color:var(--accent);letter-spacing:.04em;display:flex;align-items:center;justify-content:space-between;gap:6px}
 .scard p{margin:0;font-size:14px;line-height:1.5;word-break:keep-all}
 .tlink{font-size:12px;font-weight:700;color:var(--focus);text-decoration:none;font-variant-numeric:tabular-nums;white-space:nowrap}
@@ -155,15 +151,12 @@ textarea.in{min-height:110px;resize:vertical}
 .aibox .btn{justify-self:start}
 .aibox small{color:var(--muted);font-size:12px}
 .erows{display:grid;gap:10px}
-.erow{display:grid;grid-template-columns:120px 1fr auto;gap:8px;align-items:start;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:8px}
-.erow .frame{cursor:pointer}
+.erow{display:grid;grid-template-columns:78px 1fr auto;gap:8px;align-items:start;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:8px}
 .erow .side{display:grid;gap:6px}
 .erow .tin{width:100%;font-size:13px;padding:6px 8px}
 .erow textarea{min-height:64px;font-size:15px}
 .erow .rm{border:0;background:transparent;font-size:20px;color:var(--muted);width:30px;height:30px;padding:0}
 .erow .no{font-size:11px;font-weight:700;color:var(--accent)}
-@media (max-width:440px){.erow{grid-template-columns:96px 1fr auto}}
-.cookFrame{margin-bottom:12px;max-width:720px}
 
 /* 처음 설정 */
 .setup{max-width:520px;margin:8vh auto 0;display:grid;gap:14px}
@@ -296,21 +289,10 @@ function watchUrl(r, at){
   return /^https:\/\//.test(r.url||'') ? r.url : null;
 }
 
-/* ---------- 단계 카드 ---------- */
-const driveImg = id => 'https://lh3.googleusercontent.com/d/' + encodeURIComponent(id) + '=w1200';
-// img: {f} = 내 사진, {f,c,r,x,y} = 영상 장면 모음 그림에서 한 칸
-function frameHTML(img, extra){
-  const a = extra || '';
-  if(!img || !img.f) return '<div class="frame none"' + a + '>' + (a ? '+ 사진' : '사진 없음') + '</div>';
-  if(img.c){
-    const px = img.c > 1 ? img.x / (img.c - 1) * 100 : 0, py = img.r > 1 ? img.y / (img.r - 1) * 100 : 0;
-    return '<div class="frame"' + a + ' style="background-image:url(\'' + esc(driveImg(img.f)) + '\');background-size:' + (img.c * 100) + '% ' + (img.r * 100) + '%;background-position:' + px + '% ' + py + '%"></div>';
-  }
-  return '<div class="frame"' + a + '><img alt="" loading="lazy" src="' + esc(driveImg(img.f)) + '"></div>';
-}
+/* ---------- 단계 카드: {text, t(영상 초)} ---------- */
 function cardsOf(r){
   if(Array.isArray(r.cards) && r.cards.length) return r.cards;
-  return (r.steps || []).map(text => ({text, t: null, img: null}));
+  return (r.steps || []).map(text => ({text, t: null}));
 }
 
 /* ---------- 서버 ---------- */
@@ -435,7 +417,7 @@ function refreshDetail(){
     '</div>' +
     (r.ingredients && r.ingredients.length ? '<div class="sec"><h3>재료 ' + r.ingredients.length + '가지</h3><ul class="ing">' + r.ingredients.map(i => '<li>' + esc(i) + '</li>').join('') + '</ul></div>' : '') +
     (cards.length ? '<div class="sec"><h3>순서 ' + cards.length + '단계</h3><div class="scards">' + cards.map((c, i) =>
-      '<div class="scard">' + (c.img ? frameHTML(c.img) : '') +
+      '<div class="scard">' +
         '<div class="no"><span>STEP ' + (i+1) + '</span>' + (r.videoId && c.t != null ? '<a class="tlink" href="' + esc(watchUrl(r, c.t)) + '" target="_blank" rel="noopener">▶ ' + esc(fmtMMSS(c.t) || '0:00') + '</a>' : '') + '</div>' +
         '<p>' + esc(c.text) + '</p></div>').join('') + '</div></div>' : '') +
     (r.memo ? '<div class="sec"><h3>메모</h3><p class="memo">' + esc(r.memo) + '</p></div>' : '') +
@@ -455,7 +437,7 @@ function openEditor(r, pre){
       '<label class="f">유튜브 링크 <span class="h">유튜브에서 공유 → 링크 복사 후 붙여넣기</span>' +
         '<input class="in" id="fUrl" inputmode="url" autocomplete="off" placeholder="https://youtu.be/…" value="' + esc(v.url||'') + '"><span class="hint" id="urlHint"></span></label>' +
       '<div class="vprev" id="vprev" hidden></div>' +
-      '<div class="aibox" id="aibox" hidden><button type="button" class="btn primary" id="aiBtn">✨ AI로 재료·단계 정리</button><small id="aiMsg">AI가 영상을 보고 재료, 단계별 설명, 장면 사진을 채워 줘요. 1~2분 걸려요.</small></div>' +
+      '<div class="aibox" id="aibox" hidden><button type="button" class="btn primary" id="aiBtn">✨ AI로 재료·단계 정리</button><small id="aiMsg">AI가 영상을 보고 재료와 단계별 설명, 단계마다 영상 시간을 채워 줘요. 30초~1분쯤 걸려요.</small></div>' +
       '<label class="f">메뉴 이름 <span class="h">영상 제목이 자동으로 들어가요. 짧게 고쳐도 좋아요</span><input class="in" id="fTitle" maxlength="60" placeholder="예: 제육볶음" value="' + esc(v.title||'') + '"></label>' +
       '<div class="f">분류<div class="catpick">' +
         CATS.map(c => '<input type="radio" name="cat" id="cat-' + c.k + '" value="' + c.k + '"' + ((v.cat||'kor') === c.k ? ' checked' : '') + '><label for="cat-' + c.k + '">' + c.n + '</label>').join('') +
@@ -466,7 +448,7 @@ function openEditor(r, pre){
         '<label class="f">영상 시작 지점<input class="in" id="fStart" placeholder="3:20" value="' + esc(fmtMMSS(v.start)) + '"></label>' +
       '</div>' +
       '<label class="f">재료 <span class="h">한 줄에 하나씩 · 요리 모드에서 체크할 수 있어요</span><textarea class="in" id="fIng" placeholder="돼지고기 앞다리살 300g&#10;고추장 2큰술">' + esc((v.ingredients||[]).join('\n')) + '</textarea></label>' +
-      '<div class="f">순서 <span class="h">단계마다 설명을 쓰고, 왼쪽 그림을 누르면 내 사진으로 바꿀 수 있어요. 시간(분:초)은 영상에서 그 장면 위치예요</span>' +
+      '<div class="f">순서 <span class="h">단계마다 설명을 써요. 시간(분:초)을 적어 두면 그 장면부터 영상을 바로 볼 수 있어요</span>' +
         '<div class="erows" id="erows"></div>' +
         '<button type="button" class="btn ghost" id="addStep" style="justify-self:start">+ 단계 추가</button></div>' +
       '<label class="f">메모 <textarea class="in" id="fMemo" style="min-height:70px" placeholder="다음엔 설탕 반만">' + esc(v.memo||'') + '</textarea></label>' +
@@ -475,7 +457,7 @@ function openEditor(r, pre){
   $('editor').hidden = false;
   $('editorSheet').dataset.channel = v.channel || '';
   draft = cardsOf(v).map(c => Object.assign({}, c));
-  if(!draft.length) draft = [{text:'', t:null, img:null}];
+  if(!draft.length) draft = [{text:'', t:null}];
   renderDraft();
   urlChanged();
   setTimeout(() => { const f = $(v.url ? 'fTitle' : 'fUrl'); if(f && matchMedia('(pointer:fine)').matches) f.focus(); }, 60);
@@ -524,7 +506,7 @@ function syncDraft(){
 function renderDraft(){
   $('erows').innerHTML = draft.map((c, i) =>
     '<div class="erow" data-i="' + i + '">' +
-      '<div class="side"><span class="no">STEP ' + (i+1) + '</span>' + frameHTML(c.img, ' data-photo="' + i + '" role="button" tabindex="0" aria-label="' + (i+1) + '단계 사진 바꾸기"') +
+      '<div class="side"><span class="no">STEP ' + (i+1) + '</span>' +
         '<input class="in tin" placeholder="영상 0:00" aria-label="' + (i+1) + '단계 영상 시간" value="' + esc(c.t != null ? (fmtMMSS(c.t) || '0:00') : '') + '"></div>' +
       '<textarea class="in" aria-label="' + (i+1) + '단계 설명" placeholder="예: 센불에 고기를 3분 볶는다">' + esc(c.text || '') + '</textarea>' +
       '<button type="button" class="rm" data-rm="' + i + '" aria-label="' + (i+1) + '단계 빼기">×</button>' +
@@ -551,8 +533,7 @@ async function runAI(){
     if(r.ingredients.length) $('fIng').value = r.ingredients.join('\n');
     if(r.memo && !$('fMemo').value.trim()) $('fMemo').value = r.memo;
     if(r.cards.length){ draft = r.cards; renderDraft(); }
-    const pics = r.cards.filter(c => c.img).length;
-    msg.textContent = '정리했어요: 재료 ' + r.ingredients.length + '가지, ' + r.cards.length + '단계' + (pics ? ', 장면 사진 ' + pics + '장' : ' (장면 사진은 못 가져왔어요)') + '. 확인하고 고친 뒤 저장하세요.';
+    msg.textContent = '정리했어요: 재료 ' + r.ingredients.length + '가지, ' + r.cards.length + '단계. 확인하고 고친 뒤 저장하세요.';
   }catch(err){
     msg.textContent = err.message === 'no gemini key' ? 'Gemini 키가 아직 설정되지 않았어요. 설치방법.md의 "AI 정리 켜기"를 따라 해 주세요.'
       : err.message === 'not youtube' ? '유튜브 영상 링크에서만 쓸 수 있어요.'
@@ -563,28 +544,6 @@ async function runAI(){
     if($('saveBtn')) $('saveBtn').disabled = false;
   }
 }
-let photoFor = -1;
-const photoIn = document.createElement('input');
-photoIn.type = 'file'; photoIn.accept = 'image/*'; photoIn.hidden = true; document.body.appendChild(photoIn);
-async function shrink(file){
-  const bmp = await createImageBitmap(file);
-  const s = Math.min(1, 1280 / Math.max(bmp.width, bmp.height));
-  const c = document.createElement('canvas'); c.width = Math.round(bmp.width * s); c.height = Math.round(bmp.height * s);
-  c.getContext('2d').drawImage(bmp, 0, 0, c.width, c.height);
-  return c.toDataURL('image/jpeg', 0.85).split(',')[1];
-}
-photoIn.addEventListener('change', async () => {
-  const f = photoIn.files[0], i = photoFor; photoIn.value = '';
-  if(!f || i < 0 || !draft[i]) return;
-  syncDraft();
-  const row = document.querySelector('#erows .erow[data-i="' + i + '"] .frame');
-  if(row){ row.className = 'frame none'; row.style.backgroundImage = ''; row.textContent = '올리는 중…'; }
-  try{
-    const d = await api('POST', {action:'photo', data: await shrink(f), mime:'image/jpeg'});
-    draft[i].img = {f: d.file}; renderDraft(); toast((i+1) + '단계 사진을 바꿨어요');
-  }catch(err){ renderDraft(); toast('사진을 올리지 못했어요'); }
-});
-
 async function submitForm(e){
   e.preventDefault();
   const title = $('fTitle').value.trim();
@@ -600,7 +559,7 @@ async function submitForm(e){
     ingredients: lines($('fIng').value), memo: $('fMemo').value.trim()
   });
   syncDraft();
-  rec.cards = draft.map(c => ({text: String(c.text || '').trim(), t: c.t, img: c.img || null})).filter(c => c.text);
+  rec.cards = draft.map(c => ({text: String(c.text || '').trim(), t: c.t})).filter(c => c.text);
   rec.steps = rec.cards.map(c => c.text);
   if(aiBusy){ toast('AI 정리가 끝난 뒤 저장해 주세요'); return; }
   const btn = $('saveBtn'); btn.disabled = true; btn.textContent = '저장하는 중…';
@@ -637,7 +596,7 @@ function endCook(){
 }
 function renderCook(){
   const {r, i} = cook;
-  const cards = cardsOf(r).length ? cardsOf(r) : [{text:'영상을 보며 따라 만들어 보세요', t:null, img:null}];
+  const cards = cardsOf(r).length ? cardsOf(r) : [{text:'영상을 보며 따라 만들어 보세요', t:null}];
   const steps = cards.map(c => c.text), card = cards[i];
   const url = watchUrl(r);
   $('cook').innerHTML =
@@ -645,7 +604,6 @@ function renderCook(){
       (url ? '<a class="btn" href="' + esc(url) + '" target="_blank" rel="noopener">영상</a>' : '') + '</div>' +
     '<div class="cookBody">' +
       '<section class="panel" aria-label="현재 단계">' +
-        (card.img ? '<div class="cookFrame">' + frameHTML(card.img) + '</div>' : '') +
         '<div class="stepNo">STEP ' + (i+1) + ' / ' + steps.length +
           (r.videoId && card.t != null ? ' · <a class="tlink" href="' + esc(watchUrl(r, card.t)) + '" target="_blank" rel="noopener">▶ 영상에서 이 장면 ' + esc(fmtMMSS(card.t) || '0:00') + '</a>' : '') + '</div>' +
         '<p class="stepText">' + esc(steps[i]) + '</p>' +
@@ -786,11 +744,9 @@ $('editor').addEventListener('click', e => {
     $('editor').hidden = true; return;
   }
   if(e.target.closest('#aiBtn')){ runAI(); return; }
-  if(e.target.closest('#addStep')){ syncDraft(); draft.push({text:'', t:null, img:null}); renderDraft(); const ts = document.querySelectorAll('#erows textarea'); ts[ts.length-1].focus(); return; }
+  if(e.target.closest('#addStep')){ syncDraft(); draft.push({text:'', t:null}); renderDraft(); const ts = document.querySelectorAll('#erows textarea'); ts[ts.length-1].focus(); return; }
   const rm = e.target.closest('[data-rm]');
-  if(rm){ syncDraft(); draft.splice(+rm.dataset.rm, 1); if(!draft.length) draft.push({text:'', t:null, img:null}); renderDraft(); return; }
-  const ph = e.target.closest('[data-photo]');
-  if(ph){ photoFor = +ph.dataset.photo; photoIn.click(); }
+  if(rm){ syncDraft(); draft.splice(+rm.dataset.rm, 1); if(!draft.length) draft.push({text:'', t:null}); renderDraft(); }
 });
 let urlT = null;
 $('editor').addEventListener('input', e => { if(e.target.id === 'fUrl'){ clearTimeout(urlT); urlT = setTimeout(urlChanged, 250); } });

@@ -2,7 +2,7 @@
 // - 앱 화면(같은 사이트 파일)은 인터넷이 없어도 열리도록 저장해 둠
 // - index.html은 항상 새 버전을 먼저 시도하고, 안 되면 저장본 사용
 // - 구글 웹앱(레시피 데이터) 요청은 건드리지 않음
-const CACHE = 'recipe-drawer-v2';
+const CACHE = 'recipe-drawer-v3';
 const SHELL = ['./', 'index.html', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png', 'apple-touch-icon.png'];
 
 self.addEventListener('install', e => {
