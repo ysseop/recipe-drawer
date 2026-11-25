@@ -146,8 +146,6 @@ textarea.in{min-height:110px;resize:vertical}
 .scard{background:var(--sunk);border-radius:12px;padding:10px 12px;display:grid;gap:6px;align-content:start;min-width:0}
 .scard .no{font-size:12px;font-weight:700;color:var(--accent);letter-spacing:.04em;display:flex;align-items:center;justify-content:space-between;gap:6px}
 .scard p{margin:0;font-size:14px;line-height:1.5;word-break:keep-all}
-.simg{display:block;width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:8px;background:var(--line)}
-.cookImg{max-width:640px;margin-bottom:12px}
 .ttlBtn{all:unset;cursor:pointer;font:inherit;border-radius:6px}
 .ttlBtn:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
 .ttlBtn .pen{font-family:var(--body);font-size:15px;color:var(--muted);margin-left:8px;vertical-align:middle}
@@ -177,29 +175,6 @@ textarea.in{min-height:110px;resize:vertical}
 .setup h1{font-family:var(--display);font-weight:400;font-size:34px;margin:0}
 .setup p{margin:0;color:var(--muted)}
 .err{color:var(--accent);font-size:13px;font-weight:500;min-height:1.2em}
-
-/* 요리 모드 */
-.cook{position:fixed;inset:0;z-index:30;background:var(--bg);display:flex;flex-direction:column;
-  padding:env(safe-area-inset-top,0px) max(16px,env(safe-area-inset-right,0px)) env(safe-area-inset-bottom,0px) max(16px,env(safe-area-inset-left,0px))}
-.cookTop{display:flex;align-items:center;gap:10px;padding-block:12px}
-.cookTop h2{font-family:var(--display);font-weight:400;font-size:22px;margin:0;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.cookBody{flex:1;overflow:auto;display:grid;gap:16px;grid-template-columns:1fr;align-content:start;padding-bottom:12px}
-@media (min-width:820px){.cookBody{grid-template-columns:1fr 320px}}
-.panel{background:var(--surface);border-radius:16px;padding:16px;min-width:0}
-.panel h3{font-size:12px;letter-spacing:.08em;color:var(--muted);margin:0 0 10px;font-weight:700}
-.check{display:flex;gap:10px;align-items:flex-start;padding:7px 0;border-bottom:1px dashed var(--line)}
-.check input{width:20px;height:20px;accent-color:var(--accent);flex:none;margin-top:2px}
-.check input:checked+span{text-decoration:line-through;color:var(--muted)}
-.stepNo{font-variant-numeric:tabular-nums;color:var(--accent);font-weight:700;font-size:14px;letter-spacing:.04em}
-.stepText{font-size:clamp(22px,4.4vw,32px);line-height:1.45;margin:8px 0 0;font-weight:500;word-break:keep-all}
-.dots{display:flex;gap:5px;flex-wrap:wrap;margin-top:16px}
-.dots i{width:22px;height:5px;border-radius:3px;background:var(--line)}
-.dots i.on{background:var(--accent)}
-.cookNav{display:flex;gap:10px;padding-block:10px 14px}
-.cookNav .btn{flex:1;padding:16px;font-size:17px}
-.timer{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:16px}
-.timer .clock{font-variant-numeric:tabular-nums;font-size:24px;font-weight:700;min-width:84px}
-.timer .clock.ring{color:var(--accent)}
 .toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:10px 16px;border-radius:999px;font-size:14px;z-index:40;max-width:90vw;text-align:center}
 </style>
 </head>
@@ -232,7 +207,6 @@ textarea.in{min-height:110px;resize:vertical}
       <input id="q" type="search" placeholder="메뉴, 재료, 채널로 찾기" autocomplete="off">
       <select id="sort" aria-label="정렬">
         <option value="recent">최근 저장순</option>
-        <option value="cooked">자주 만든 순</option>
         <option value="quick">빨리 되는 순</option>
         <option value="name">이름순</option>
       </select>
@@ -246,7 +220,6 @@ textarea.in{min-height:110px;resize:vertical}
 <div class="scrim" id="detail" hidden><div class="sheet" role="dialog" aria-modal="true" aria-labelledby="dTitle" id="detailSheet"></div></div>
 <div class="scrim" id="editor" hidden><div class="sheet" role="dialog" aria-modal="true" aria-labelledby="eTitle" id="editorSheet"></div></div>
 <div class="scrim" id="settings" hidden><div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sTitle" id="settingsSheet"></div></div>
-<div class="cook" id="cook" hidden></div>
 <div class="toast" id="toast" role="status" hidden></div>
 
 <script>
@@ -303,15 +276,10 @@ function watchUrl(r, at){
   return /^https:\/\//.test(r.url||'') ? r.url : null;
 }
 
-/* ---------- 단계 카드: {text, t(영상 초), p(유튜브 공식 장면 사진 1~3, 맞는 단계에만)} ---------- */
+/* ---------- 단계 카드: {text, t(영상 초)} ---------- */
 function cardsOf(r){
   if(Array.isArray(r.cards) && r.cards.length) return r.cards;
   return (r.steps || []).map(text => ({text, t: null}));
-}
-function sceneImg(r, p, cls){
-  if(!r.videoId || ![1,2,3].includes(+p)) return '';
-  const base = 'https://i.ytimg.com/vi/' + encodeURIComponent(r.videoId) + '/';
-  return '<img class="simg' + (cls ? ' ' + cls : '') + '" alt="" loading="lazy" src="' + esc(base + 'maxres' + p + '.jpg') + '" onerror="this.onerror=null;this.src=\'' + esc(base + 'hq' + p + '.jpg') + '\'">';
 }
 
 /* ---------- 서버 ---------- */
@@ -369,7 +337,6 @@ function visible(){
   });
   const by = {
     recent:(a,b)=>(b.createdAt||0)-(a.createdAt||0),
-    cooked:(a,b)=>(b.cookCount||0)-(a.cookCount||0) || (b.lastCooked||0)-(a.lastCooked||0),
     quick:(a,b)=>(a.minutes||999)-(b.minutes||999),
     name:(a,b)=>String(a.title).localeCompare(String(b.title),'ko')
   }[sort];
@@ -389,7 +356,6 @@ function sub(r){
   if(r.minutes) bits.push(r.minutes + '분');
   if(r.servings) bits.push(r.servings + '인분');
   bits.push(catName(r.cat));
-  if(r.cookCount) bits.push(r.cookCount + '번 만듦');
   return bits.join(' · ');
 }
 function render(){
@@ -423,7 +389,7 @@ function refreshDetail(){
   const r = find(openId);
   if(!r){ closeDetail(); return; }
   const url = watchUrl(r);
-  const facts = [r.minutes && r.minutes + '분', r.servings && r.servings + '인분', catName(r.cat), r.start && '영상 ' + fmtMMSS(r.start) + '부터', r.cookCount && r.cookCount + '번 만듦'].filter(Boolean);
+  const facts = [r.minutes && r.minutes + '분', r.servings && r.servings + '인분', catName(r.cat), r.start && '영상 ' + fmtMMSS(r.start) + '부터'].filter(Boolean);
   const cards = cardsOf(r);
   const cover = coverHTML(r) + (url && r.videoId ? '<div class="play"><span><svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z" fill="#fff"/></svg></span></div>' : '');
   $('detailSheet').innerHTML =
@@ -431,12 +397,11 @@ function refreshDetail(){
     (url ? '<a class="dcover" href="' + esc(url) + '" target="_blank" rel="noopener" aria-label="유튜브에서 영상 보기">' + cover + '</a>' : '<div class="dcover">' + cover + '</div>') +
     '<div class="facts">' + facts.map(f => '<span class="fact">' + esc(f) + '</span>').join('') + '</div>' +
     '<div class="actions">' +
-      '<button type="button" class="btn primary" data-cook>요리 시작</button>' +
       (url ? '<a class="btn" href="' + esc(url) + '" target="_blank" rel="noopener">유튜브에서 보기</a>' : '') +
     '</div>' +
     (r.ingredients && r.ingredients.length ? '<div class="sec"><h3>재료 ' + r.ingredients.length + '가지</h3><ul class="ing">' + r.ingredients.map(i => '<li>' + esc(i) + '</li>').join('') + '</ul></div>' : '') +
     (cards.length ? '<div class="sec"><h3>순서 ' + cards.length + '단계</h3><div class="scards">' + cards.map((c, i) =>
-      '<div class="scard">' + sceneImg(r, c.p) +
+      '<div class="scard">' +
         '<div class="no"><span>STEP ' + (i+1) + '</span>' + (r.videoId && c.t != null ? '<a class="tlink" href="' + esc(watchUrl(r, c.t)) + '" target="_blank" rel="noopener">▶ ' + esc(fmtMMSS(c.t) || '0:00') + '</a>' : '') + '</div>' +
         '<p>' + esc(c.text) + '</p></div>').join('') + '</div></div>' : '') +
     (r.memo ? '<div class="sec"><h3>메모</h3><p class="memo">' + esc(r.memo) + '</p></div>' : '') +
@@ -670,7 +635,7 @@ async function submitForm(e){
     ingredients: lines($('fIng').value), memo: $('fMemo').value.trim()
   });
   syncDraft();
-  rec.cards = draft.map(c => Object.assign({text: String(c.text || '').trim(), t: c.t}, c.p ? {p: c.p} : {})).filter(c => c.text);
+  rec.cards = draft.map(c => ({text: String(c.text || '').trim(), t: c.t})).filter(c => c.text);
   rec.steps = rec.cards.map(c => c.text);
   if(aiBusy){ toast('AI 정리가 끝난 뒤 저장해 주세요'); return; }
   const btn = $('saveBtn'); btn.disabled = true; btn.textContent = '저장하는 중…';
@@ -684,69 +649,6 @@ async function submitForm(e){
     btn.disabled = false; btn.textContent = '저장';
     toast(navigator.onLine === false ? '인터넷에 연결되지 않아 저장하지 못했어요' : '저장하지 못했어요. 다시 눌러 주세요.');
   }
-}
-
-/* ---------- 요리 모드 ---------- */
-let cook = null, wake = null, tick = null;
-async function lockScreen(){
-  try{ wake = await navigator.wakeLock.request('screen'); wake.addEventListener('release', () => { wake = null; }); }catch(e){ wake = null; }
-}
-function startCook(id){
-  const r = find(id); if(!r) return;
-  cook = {r, i: 0, checked: new Set(), left: 0};
-  $('detail').hidden = true;
-  $('cook').hidden = false;
-  renderCook();
-  lockScreen();
-  api('POST', {action:'cook', id}).then(d => { upsertLocal(d.recipe); if(cook) cook.r = d.recipe; }).catch(() => {});
-}
-function endCook(){
-  $('cook').hidden = true; clearInterval(tick); tick = null; cook = null;
-  if(wake){ wake.release().catch(() => {}); wake = null; }
-  if(openId){ refreshDetail(); $('detail').hidden = false; }
-}
-function renderCook(){
-  const {r, i} = cook;
-  const cards = cardsOf(r).length ? cardsOf(r) : [{text:'영상을 보며 따라 만들어 보세요', t:null}];
-  const steps = cards.map(c => c.text), card = cards[i];
-  const url = watchUrl(r);
-  $('cook').innerHTML =
-    '<div class="cookTop"><button type="button" class="x" data-endcook aria-label="요리 모드 닫기">×</button><h2>' + esc(r.title) + '</h2>' +
-      (url ? '<a class="btn" href="' + esc(url) + '" target="_blank" rel="noopener">영상</a>' : '') + '</div>' +
-    '<div class="cookBody">' +
-      '<section class="panel" aria-label="현재 단계">' +
-        (card.p ? '<div class="cookImg">' + sceneImg(r, card.p) + '</div>' : '') +
-        '<div class="stepNo">STEP ' + (i+1) + ' / ' + steps.length +
-          (r.videoId && card.t != null ? ' · <a class="tlink" href="' + esc(watchUrl(r, card.t)) + '" target="_blank" rel="noopener">▶ 영상에서 이 장면 ' + esc(fmtMMSS(card.t) || '0:00') + '</a>' : '') + '</div>' +
-        '<p class="stepText">' + esc(steps[i]) + '</p>' +
-        '<div class="dots">' + steps.map((_, k) => '<i class="' + (k <= i ? 'on' : '') + '"></i>').join('') + '</div>' +
-        '<div class="timer"><span class="clock" id="clock">' + clockText() + '</span>' +
-          [1,3,5,10].map(m => '<button type="button" class="chip" data-t="' + m + '">' + m + '분</button>').join('') +
-          '<button type="button" class="chip" data-tstop>정지</button></div>' +
-      '</section>' +
-      (r.ingredients && r.ingredients.length ? '<section class="panel" aria-label="재료"><h3 id="ckHead">재료 체크 · ' + cook.checked.size + '/' + r.ingredients.length + '</h3>' +
-        r.ingredients.map((g, k) => '<label class="check"><input type="checkbox" data-ck="' + k + '"' + (cook.checked.has(k) ? ' checked' : '') + '><span>' + esc(g) + '</span></label>').join('') + '</section>' : '') +
-    '</div>' +
-    '<div class="cookNav"><button type="button" class="btn" data-prev' + (i === 0 ? ' disabled' : '') + '>이전</button>' +
-      (i < steps.length - 1 ? '<button type="button" class="btn primary" data-next>다음 단계</button>' : '<button type="button" class="btn primary" data-endcook>완성!</button>') + '</div>';
-}
-function clockText(){ const s = cook ? cook.left : 0; return String(Math.floor(s/60)).padStart(2,'0') + ':' + String(s%60).padStart(2,'0'); }
-function setTimer(min){
-  clearInterval(tick); cook.left = min * 60;
-  const c = $('clock'); c.classList.remove('ring'); c.textContent = clockText();
-  const end = Date.now() + min * 60000;
-  tick = setInterval(() => {
-    if(!cook){ clearInterval(tick); return; }
-    cook.left = Math.max(0, Math.round((end - Date.now()) / 1000));
-    const el = $('clock'); if(el) el.textContent = clockText();
-    if(cook.left === 0){ clearInterval(tick); if(el) el.classList.add('ring'); toast('⏰ 타이머 끝!'); try{ navigator.vibrate && navigator.vibrate([300,150,300,150,300]); }catch(e){} beep(); }
-  }, 500);
-}
-function beep(){
-  try{
-    const a = new (window.AudioContext || window.webkitAudioContext)();
-    [0, .35, .7].forEach(t => { const o = a.createOscillator(), g = a.createGain(); o.frequency.value = 880; o.connect(g); g.connect(a.destination); g.gain.setValueAtTime(.2, a.currentTime + t); g.gain.exponentialRampToValueAtTime(.001, a.currentTime + t + .25); o.start(a.currentTime + t); o.stop(a.currentTime + t + .3); });
-  }catch(e){}
 }
 
 /* ---------- 설정/연결 ---------- */
@@ -838,7 +740,6 @@ $('detail').addEventListener('click', async e => {
   if(e.target === $('detail') || e.target.closest('[data-close]')){ closeDetail(); return; }
   if(e.target.closest('[data-rename]')){ startRename(); return; }
   if(e.target.closest('[data-rncancel]')){ refreshDetail(); return; }
-  if(e.target.closest('[data-cook]')){ startCook(openId); return; }
   if(e.target.closest('[data-edit]')){ openEditor(find(openId)); return; }
   const d = e.target.closest('[data-del]');
   if(d){
@@ -880,28 +781,14 @@ $('settings').addEventListener('click', async e => {
     disconnect('연결을 끊었어요. 시트의 레시피는 그대로 있어요.');
   }
 });
-$('cook').addEventListener('click', e => {
-  if(e.target.closest('[data-endcook]')){ endCook(); return; }
-  if(e.target.closest('[data-next]')){ cook.i++; renderCook(); return; }
-  if(e.target.closest('[data-prev]')){ cook.i = Math.max(0, cook.i - 1); renderCook(); return; }
-  const t = e.target.closest('[data-t]'); if(t){ setTimer(+t.dataset.t); return; }
-  if(e.target.closest('[data-tstop]')){ clearInterval(tick); cook.left = 0; $('clock').textContent = clockText(); }
-});
-$('cook').addEventListener('change', e => {
-  const k = e.target.dataset.ck; if(k == null) return;
-  e.target.checked ? cook.checked.add(+k) : cook.checked.delete(+k);
-  $('ckHead').textContent = '재료 체크 · ' + cook.checked.size + '/' + cook.r.ingredients.length;
-});
 document.addEventListener('keydown', e => {
   if(e.key !== 'Escape') return;
-  if(!$('cook').hidden) endCook();
-  else if(!$('editor').hidden) $('editor').hidden = true;
+  if(!$('editor').hidden) $('editor').hidden = true;
   else if(!$('settings').hidden) $('settings').hidden = true;
   else if(!$('detail').hidden) closeDetail();
 });
 document.addEventListener('visibilitychange', () => {
   if(document.visibilityState !== 'visible') return;
-  if(cook && !wake) lockScreen();
   if(!$('app').hidden && $('editor').hidden) load(false);
 });
 
