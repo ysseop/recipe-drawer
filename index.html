@@ -551,7 +551,8 @@ async function runAI(){
     if(r.servings) $('fSrv').value = r.servings;
     if(r.ingredients.length) $('fIng').value = r.ingredients.join('\n');
     if(r.memo && !$('fMemo').value.trim()) $('fMemo').value = r.memo;
-    if(r.cards.length){ draft = r.cards; renderDraft(); }
+    if(!r.cards.length) throw new Error('AI가 단계를 찾지 못했어요');
+    draft = r.cards; renderDraft();
     msg.textContent = '정리했어요: 재료 ' + r.ingredients.length + '가지, ' + r.cards.length + '단계. 확인하고 고친 뒤 저장하세요.';
   }catch(err){
     msg.textContent = err.message === 'no gemini key' ? 'Gemini 키가 아직 설정되지 않았어요. 설치방법.md의 "AI 정리 켜기"를 따라 해 주세요.'
@@ -613,6 +614,7 @@ async function startQuick(u){
   try{
     const d = await api('POST', {action:'analyze', url: u});
     const r = d.recipe;
+    if(!(r.cards || []).length) throw new Error('AI가 단계를 찾지 못했어요');
     const meta = await api('GET', {action:'meta', url: u}).catch(() => ({}));
     const rec = {
       title: r.title || meta.title || '새 레시피', url: u, videoId: ytId(u) || '', channel: r.channel || meta.channel || '',
