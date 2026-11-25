@@ -146,6 +146,20 @@ textarea.in{min-height:110px;resize:vertical}
 .scard{background:var(--sunk);border-radius:12px;padding:10px 12px;display:grid;gap:6px;align-content:start;min-width:0}
 .scard .no{font-size:12px;font-weight:700;color:var(--accent);letter-spacing:.04em;display:flex;align-items:center;justify-content:space-between;gap:6px}
 .scard p{margin:0;font-size:14px;line-height:1.5;word-break:keep-all}
+.simg{display:block;width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:8px;background:var(--line)}
+.cookImg{max-width:640px;margin-bottom:12px}
+.ttlBtn{all:unset;cursor:pointer;font:inherit;border-radius:6px}
+.ttlBtn:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.ttlBtn .pen{font-family:var(--body);font-size:15px;color:var(--muted);margin-left:8px;vertical-align:middle}
+.rename{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.rename .in{flex:1 1 200px;font-size:18px;font-weight:700}
+.prog{display:grid;gap:8px;background:var(--sunk);border-radius:12px;padding:14px}
+.prog .bar{height:8px;border-radius:4px;background:var(--line);overflow:hidden}
+.prog .bar i{display:block;height:100%;width:0;background:var(--accent);border-radius:4px;transition:width .5s linear}
+.prog .ptext{display:flex;justify-content:space-between;gap:8px;font-size:14px;font-weight:700}
+.prog .ptext span:last-child{font-variant-numeric:tabular-nums;color:var(--muted)}
+.prog small{color:var(--muted);font-size:12px}
+.linkbtn{all:unset;cursor:pointer;color:var(--focus);font-size:13px;font-weight:700;justify-self:start}
 .tlink{font-size:12px;font-weight:700;color:var(--focus);text-decoration:none;font-variant-numeric:tabular-nums;white-space:nowrap}
 .aibox{display:grid;gap:6px;background:var(--sunk);border-radius:10px;padding:10px 12px}
 .aibox .btn{justify-self:start}
@@ -289,10 +303,15 @@ function watchUrl(r, at){
   return /^https:\/\//.test(r.url||'') ? r.url : null;
 }
 
-/* ---------- 단계 카드: {text, t(영상 초)} ---------- */
+/* ---------- 단계 카드: {text, t(영상 초), p(유튜브 공식 장면 사진 1~3, 맞는 단계에만)} ---------- */
 function cardsOf(r){
   if(Array.isArray(r.cards) && r.cards.length) return r.cards;
   return (r.steps || []).map(text => ({text, t: null}));
+}
+function sceneImg(r, p, cls){
+  if(!r.videoId || ![1,2,3].includes(+p)) return '';
+  const base = 'https://i.ytimg.com/vi/' + encodeURIComponent(r.videoId) + '/';
+  return '<img class="simg' + (cls ? ' ' + cls : '') + '" alt="" loading="lazy" src="' + esc(base + 'maxres' + p + '.jpg') + '" onerror="this.onerror=null;this.src=\'' + esc(base + 'hq' + p + '.jpg') + '\'">';
 }
 
 /* ---------- 서버 ---------- */
@@ -408,7 +427,7 @@ function refreshDetail(){
   const cards = cardsOf(r);
   const cover = coverHTML(r) + (url && r.videoId ? '<div class="play"><span><svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z" fill="#fff"/></svg></span></div>' : '');
   $('detailSheet').innerHTML =
-    '<div class="shead"><div><h2 id="dTitle">' + esc(r.title) + '</h2>' + (r.channel ? '<div class="channel">' + esc(r.channel) + '</div>' : '') + '</div><button type="button" class="x" data-close aria-label="닫기">×</button></div>' +
+    '<div class="shead"><div><h2 id="dTitle"><button type="button" class="ttlBtn" data-rename title="눌러서 이름 바꾸기">' + esc(r.title) + '<span class="pen" aria-hidden="true">✎</span></button></h2>' + (r.channel ? '<div class="channel">' + esc(r.channel) + '</div>' : '') + '</div><button type="button" class="x" data-close aria-label="닫기">×</button></div>' +
     (url ? '<a class="dcover" href="' + esc(url) + '" target="_blank" rel="noopener" aria-label="유튜브에서 영상 보기">' + cover + '</a>' : '<div class="dcover">' + cover + '</div>') +
     '<div class="facts">' + facts.map(f => '<span class="fact">' + esc(f) + '</span>').join('') + '</div>' +
     '<div class="actions">' +
@@ -417,7 +436,7 @@ function refreshDetail(){
     '</div>' +
     (r.ingredients && r.ingredients.length ? '<div class="sec"><h3>재료 ' + r.ingredients.length + '가지</h3><ul class="ing">' + r.ingredients.map(i => '<li>' + esc(i) + '</li>').join('') + '</ul></div>' : '') +
     (cards.length ? '<div class="sec"><h3>순서 ' + cards.length + '단계</h3><div class="scards">' + cards.map((c, i) =>
-      '<div class="scard">' +
+      '<div class="scard">' + sceneImg(r, c.p) +
         '<div class="no"><span>STEP ' + (i+1) + '</span>' + (r.videoId && c.t != null ? '<a class="tlink" href="' + esc(watchUrl(r, c.t)) + '" target="_blank" rel="noopener">▶ ' + esc(fmtMMSS(c.t) || '0:00') + '</a>' : '') + '</div>' +
         '<p>' + esc(c.text) + '</p></div>').join('') + '</div></div>' : '') +
     (r.memo ? '<div class="sec"><h3>메모</h3><p class="memo">' + esc(r.memo) + '</p></div>' : '') +
@@ -544,6 +563,96 @@ async function runAI(){
     if($('saveBtn')) $('saveBtn').disabled = false;
   }
 }
+/* 빠른 저장: 링크만 넣으면 AI 정리 → 자동 저장 → 상세 화면 */
+let quick = null; // {url, t0, timer}
+function openQuick(url){
+  if(!aiOn){ openEditor(null, url ? {url} : null); return; }
+  editing = null;
+  $('editorSheet').innerHTML =
+    '<div class="shead"><h2 id="eTitle">레시피 저장</h2><button type="button" class="x" data-close aria-label="닫기">×</button></div>' +
+    '<form id="quickForm" novalidate style="margin-top:12px">' +
+      '<label class="f">유튜브 링크 <span class="h">붙여넣으면 바로 AI가 재료와 순서를 정리해서 저장해요</span>' +
+        '<input class="in" id="qUrl" inputmode="url" autocomplete="off" placeholder="https://youtu.be/…" value="' + esc(url || '') + '"><span class="hint" id="qHint"></span></label>' +
+      '<div class="prog" id="qProg" hidden><div class="ptext"><span id="qStage">영상을 불러오는 중</span><span id="qSec">0초</span></div><div class="bar"><i id="qBar"></i></div>' +
+        '<small>보통 30초~1분 걸려요. 창을 닫아도 정리가 끝나면 저장돼요.</small></div>' +
+      '<div class="actions" id="qFail" hidden><button type="button" class="btn primary" id="qRetry">다시 시도</button></div>' +
+      '<button type="button" class="linkbtn" id="qManual">링크 없이 직접 입력하기</button>' +
+    '</form>';
+  $('editor').hidden = false;
+  if(quick) showQuickProgress();
+  else if(url) quickCheck();
+  else setTimeout(() => { const f = $('qUrl'); if(f) f.focus(); }, 60);
+}
+function quickCheck(){
+  if(quick) return;
+  const f = $('qUrl'); if(!f) return;
+  const u = findUrl(f.value.trim()) || f.value.trim();
+  const id = ytId(u), h = $('qHint');
+  if(!u){ h.textContent = ''; h.className = 'hint'; return; }
+  if(!id){ h.textContent = '유튜브 영상 링크만 자동으로 정리돼요. 다른 링크는 아래 "직접 입력하기"를 써 주세요.'; h.className = 'hint bad'; return; }
+  const dup = recipes.find(r => r.videoId === id);
+  if(dup){ $('editor').hidden = true; openDetail(dup.id); toast('이미 저장한 레시피예요'); return; }
+  f.value = u; h.textContent = ''; startQuick(u);
+}
+function showQuickProgress(){
+  const p = $('qProg'); if(!p || !quick) return;
+  p.hidden = false; $('qFail').hidden = true; $('qUrl').disabled = true; $('qUrl').value = quick.url; $('qManual').hidden = true;
+  const tick = () => {
+    if(!quick || !$('qSec')) return;
+    const sec = Math.round((Date.now() - quick.t0) / 1000);
+    $('qSec').textContent = sec + '초';
+    $('qStage').textContent = sec < 4 ? '영상을 불러오는 중' : sec < 15 ? '영상을 보는 중' : sec < 35 ? '재료와 순서를 정리하는 중' : sec < 70 ? '거의 다 됐어요' : '조금만 더 기다려 주세요';
+    $('qBar').style.width = (95 * (1 - Math.exp(-sec / 22))).toFixed(1) + '%';
+  };
+  tick();
+}
+async function startQuick(u){
+  quick = {url: u, t0: Date.now()};
+  quick.timer = setInterval(() => showQuickProgress(), 1000);
+  showQuickProgress();
+  try{
+    const d = await api('POST', {action:'analyze', url: u});
+    const r = d.recipe;
+    const meta = await api('GET', {action:'meta', url: u}).catch(() => ({}));
+    const rec = {
+      title: r.title || meta.title || '새 레시피', url: u, videoId: ytId(u) || '', channel: r.channel || meta.channel || '',
+      cat: r.cat || 'etc', minutes: r.minutes || 0, servings: r.servings || 0, start: 0,
+      ingredients: r.ingredients || [], memo: r.memo || '', cards: r.cards || [], fav: false
+    };
+    const s = await api('POST', {action:'save', recipe: rec});
+    upsertLocal(s.recipe);
+    const stillOpen = !$('editor').hidden && $('qProg');
+    if($('qBar')) $('qBar').style.width = '100%';
+    clearInterval(quick.timer); quick = null;
+    if(stillOpen){ $('editor').hidden = true; openDetail(s.recipe.id); }
+    toast('‘' + s.recipe.title + '’ 정리해서 저장했어요');
+  }catch(err){
+    clearInterval(quick.timer); quick = null;
+    if(!$('qProg') || $('editor').hidden){ toast('레시피 정리에 실패했어요. 다시 저장해 주세요.'); return; }
+    $('qProg').hidden = true; $('qFail').hidden = false; $('qManual').hidden = false; $('qUrl').disabled = false;
+    $('qHint').className = 'hint bad';
+    $('qHint').textContent = err.message === 'no gemini key' ? 'Gemini 키가 설정되지 않았어요. 설치방법.md의 "AI 정리 켜기"를 봐 주세요.'
+      : 'AI 정리에 실패했어요. 다시 시도하거나 직접 입력해 주세요. (' + String(err.message).slice(0, 60) + ')';
+  }
+}
+
+/* 상세 화면에서 이름 바꾸기 */
+function startRename(){
+  const r = find(openId); if(!r) return;
+  $('dTitle').innerHTML = '<form class="rename" id="renameForm"><input class="in" id="rnIn" maxlength="60" aria-label="레시피 이름" value="' + esc(r.title) + '"><button class="btn primary" type="submit">저장</button><button class="btn ghost" type="button" data-rncancel>취소</button></form>';
+  const i = $('rnIn'); i.focus(); i.select();
+}
+async function saveRename(){
+  const r = find(openId), title = $('rnIn').value.trim();
+  if(!r) return;
+  if(!title){ toast('이름을 적어 주세요'); return; }
+  if(title === r.title){ refreshDetail(); return; }
+  const next = Object.assign({}, r, {title});
+  upsertLocal(next); refreshDetail();
+  try{ const d = await api('POST', {action:'save', recipe: next}); upsertLocal(d.recipe); refreshDetail(); toast('이름을 바꿨어요'); }
+  catch(err){ upsertLocal(r); refreshDetail(); toast('이름을 저장하지 못했어요'); }
+}
+
 async function submitForm(e){
   e.preventDefault();
   const title = $('fTitle').value.trim();
@@ -559,7 +668,7 @@ async function submitForm(e){
     ingredients: lines($('fIng').value), memo: $('fMemo').value.trim()
   });
   syncDraft();
-  rec.cards = draft.map(c => ({text: String(c.text || '').trim(), t: c.t})).filter(c => c.text);
+  rec.cards = draft.map(c => Object.assign({text: String(c.text || '').trim(), t: c.t}, c.p ? {p: c.p} : {})).filter(c => c.text);
   rec.steps = rec.cards.map(c => c.text);
   if(aiBusy){ toast('AI 정리가 끝난 뒤 저장해 주세요'); return; }
   const btn = $('saveBtn'); btn.disabled = true; btn.textContent = '저장하는 중…';
@@ -604,6 +713,7 @@ function renderCook(){
       (url ? '<a class="btn" href="' + esc(url) + '" target="_blank" rel="noopener">영상</a>' : '') + '</div>' +
     '<div class="cookBody">' +
       '<section class="panel" aria-label="현재 단계">' +
+        (card.p ? '<div class="cookImg">' + sceneImg(r, card.p) + '</div>' : '') +
         '<div class="stepNo">STEP ' + (i+1) + ' / ' + steps.length +
           (r.videoId && card.t != null ? ' · <a class="tlink" href="' + esc(watchUrl(r, card.t)) + '" target="_blank" rel="noopener">▶ 영상에서 이 장면 ' + esc(fmtMMSS(card.t) || '0:00') + '</a>' : '') + '</div>' +
         '<p class="stepText">' + esc(steps[i]) + '</p>' +
@@ -673,9 +783,8 @@ function startApp(){
   render();
   load(true).then(() => {
     if(!shareIn) return;
-    const s = shareIn; shareIn = null; openEditor(null, s);
-    // 유튜브에서 공유해 들어오면 AI 정리를 바로 시작
-    if(aiOn && ytId(s.url)) runAI();
+    // 유튜브에서 공유해 들어오면 바로 정리해서 저장
+    const s = shareIn; shareIn = null; openQuick(s.url);
   });
 }
 
@@ -701,7 +810,7 @@ $('setupForm').addEventListener('submit', async e => {
 $('q').addEventListener('input', e => { query = e.target.value; render(); });
 $('sort').addEventListener('change', e => { sort = e.target.value; render(); });
 $('chips').addEventListener('click', e => { const b = e.target.closest('[data-f]'); if(b){ filter = b.dataset.f; render(); } });
-$('addBtn').addEventListener('click', () => openEditor(null));
+$('addBtn').addEventListener('click', () => openQuick());
 $('setBtn').addEventListener('click', openSettings);
 $('pickBtn').addEventListener('click', () => {
   const list = visible(); if(!list.length){ toast('고를 레시피가 없어요'); return; }
@@ -725,6 +834,8 @@ $('grid').addEventListener('keydown', e => { if((e.key === 'Enter' || e.key === 
 
 $('detail').addEventListener('click', async e => {
   if(e.target === $('detail') || e.target.closest('[data-close]')){ closeDetail(); return; }
+  if(e.target.closest('[data-rename]')){ startRename(); return; }
+  if(e.target.closest('[data-rncancel]')){ refreshDetail(); return; }
   if(e.target.closest('[data-cook]')){ startCook(openId); return; }
   if(e.target.closest('[data-edit]')){ openEditor(find(openId)); return; }
   const d = e.target.closest('[data-del]');
@@ -738,7 +849,11 @@ $('detail').addEventListener('click', async e => {
     }catch(err){ d.disabled = false; toast('삭제하지 못했어요'); }
   }
 });
+$('detail').addEventListener('submit', e => { if(e.target.id === 'renameForm'){ e.preventDefault(); saveRename(); } });
 $('editor').addEventListener('click', e => {
+  if(e.target.closest('#qManual')){ const u = $('qUrl').value.trim(); openEditor(null, u ? {url: u} : null); return; }
+  if(e.target.closest('#qRetry')){ $('qHint').textContent = ''; quickCheck(); return; }
+  if((e.target === $('editor') || e.target.closest('[data-close]')) && $('quickForm')){ $('editor').hidden = true; return; }
   if(e.target === $('editor') || e.target.closest('[data-close]')){
     if(aiBusy){ toast('AI 정리가 끝날 때까지 기다려 주세요'); return; }
     $('editor').hidden = true; return;
@@ -749,8 +864,11 @@ $('editor').addEventListener('click', e => {
   if(rm){ syncDraft(); draft.splice(+rm.dataset.rm, 1); if(!draft.length) draft.push({text:'', t:null}); renderDraft(); }
 });
 let urlT = null;
-$('editor').addEventListener('input', e => { if(e.target.id === 'fUrl'){ clearTimeout(urlT); urlT = setTimeout(urlChanged, 250); } });
-$('editor').addEventListener('submit', submitForm);
+$('editor').addEventListener('input', e => {
+  if(e.target.id === 'fUrl'){ clearTimeout(urlT); urlT = setTimeout(urlChanged, 250); }
+  if(e.target.id === 'qUrl'){ clearTimeout(urlT); urlT = setTimeout(quickCheck, 400); }
+});
+$('editor').addEventListener('submit', e => { if(e.target.id === 'quickForm'){ e.preventDefault(); quickCheck(); return; } submitForm(e); });
 $('settings').addEventListener('click', async e => {
   if(e.target === $('settings') || e.target.closest('[data-close]')){ $('settings').hidden = true; return; }
   if(e.target.id === 'copyLink'){ toast(await copyText(connectLink()) ? '연결 링크를 복사했어요. 폰으로 보내서 열어 보세요.' : '복사하지 못했어요'); }
